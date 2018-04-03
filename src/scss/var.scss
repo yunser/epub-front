@@ -1,0 +1,21 @@
+$primary: #2974b5;
+$line: #eee;
+$bg: #f1f1f1;
+$divider: rgba(0,0,0,.12);
+$radius: 2px;
+$color_9: rgba(0,0,0,.54);
+
+@function px2rem($px) {
+    @return $px / 100 * 1rem;
+}
+
+@mixin clearfix {
+    &:after {
+        clear: both;
+        content: '.';
+        display: block;
+        height: 0;
+        line-height: 0;
+        overflow: hidden;
+    }
+}
