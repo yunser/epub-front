@@ -1,9 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
-const Home = resolve => require(['@/views/Home'], resolve)
+const Book = resolve => require(['@/views/Book'], resolve)
+const Reader = resolve => require(['@/views/Reader'], resolve)
+const Help = resolve => require(['@/views/Help'], resolve)
 const About = resolve => require(['@/views/About'], resolve)
-
 const Error404 = resolve => require(['@/views/error/Error404'], resolve)
 
 Vue.use(Router)
@@ -11,11 +12,19 @@ Vue.use(Router)
 let routes = [
     {
         path: '/',
-        component: Home
+        component: Book
+    },
+    {
+        path: '/books/:id',
+        component: Reader
     },
     {
         path: '/about',
         component: About
+    },
+    {
+        path: '/help',
+        component: Help
     },
     {
         path: '*',
