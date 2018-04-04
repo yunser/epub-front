@@ -6,6 +6,9 @@
                 <ui-list-item title="首页" to="/">
                     <ui-icon slot="left" value="grade"/>
                 </ui-list-item>
+                <ui-list-item title="编辑器" to="/editor">
+                    <ui-icon slot="left" value="grade"/>
+                </ui-list-item>
                 <ui-list-item title="帮助" to="/help">
                     <ui-icon slot="left" value="grade"/>
                 </ui-list-item>

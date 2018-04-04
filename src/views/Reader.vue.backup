@@ -91,15 +91,15 @@
         </ui-drawer>
         <ui-drawer class="bookmark-drawer" right :open="bookmarkVisible" :docked="false" @close="toggleBookmark()">
             <ui-appbar title="书签">
-                <ui-icon-button icon="close" @click="toggleBookmark" slot="left" />
+                <ui-icon-button icon="close" @click="toggleSetting" slot="left" />
             </ui-appbar>
             <div class="bookmark-body">
-                暂无书签
+                暂无可设置项
             </div>
         </ui-drawer>
         <div v-if="info">
             {{ info.page }} / {{ info.totalPage }} {{ info.page / info.totalPage * 100}}%
-            <!--<div v-if="this.book.currentChapter">当前章节页数：{{ this.book.currentChapter.pages }}</div>-->
+            <div v-if="this.book.currentChapter">当前章节页数：{{ this.book.currentChapter.pages }}</div>
         </div>
     </my-page>
 </template>
@@ -268,6 +268,7 @@
                 })
                 this.book.ready.all.then(() => {
                     console.log('finish')
+                    console.log(this.book)
                     this.loading = false
                 })
                 this.book.renderer.forceSingle(true)

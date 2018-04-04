@@ -7,6 +7,7 @@
                         <div class="name">{{ book.name }}</div>
                         <div class="author">{{ book.author }}</div>
                         <a class="remove" href="#" @click.stop.prevent="remove(book)">删除</a>
+                        <a class="remove" href="#" @click.stop.prevent="download(book)">下载</a>
                     </router-link>
                 </li>
             </ul>
@@ -112,6 +113,19 @@
                         })
                     })
                 })
+            },
+            download(book) {
+                let fileName = 'dl.epub'
+                let blob = book.content
+                if (window.navigator.msSaveOrOpenBlob) {
+                    navigator.msSaveBlob(blob, fileName);
+                } else {
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = fileName;
+                    link.click();
+                    window.URL.revokeObjectURL(link.href);
+                }
             },
             fileChange(e) {
                 let files = e.target.files
