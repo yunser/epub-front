@@ -3,6 +3,7 @@
         <!--<ui-raised-button class="file-btn" label="从文件中导入">-->
         <!--<input type="file" class="ui-file-button" @change="fileChange($event, 1)">-->
         <!--</ui-raised-button>-->
+        <button @click="addBookmark">添加书签</button>
         <div id="wrapper">
             <div id="area"></div>
         </div>
@@ -93,8 +94,14 @@
             <ui-appbar title="书签">
                 <ui-icon-button icon="close" @click="toggleBookmark" slot="left" />
             </ui-appbar>
+            <ui-list>
+                <ui-list-item :title="bookmark.name"
+                              :key="bookmark.id"
+                              @click="gotoBookmark(bookmark)"
+                              v-for="bookmark in bookmarks"/>
+            </ui-list>
             <div class="bookmark-body">
-                暂无书签
+                <div v-if="!bookmarks.length">暂无书签</div>
             </div>
         </ui-drawer>
         <div v-if="info">
@@ -122,8 +129,22 @@
                 meta: null,
                 infoVisible: false,
                 settingVisible: false,
-                bookmarkVisible: false,
+                bookmarkVisible: true,
                 loading: true,
+                bookmarks: [
+                    {
+                        id: '1',
+                        cfi: 'epubcfi(/6/2[chapter1]!/4/14/1:0)',
+                        name: '第一个书签',
+                        posY: 1
+                    },
+                    {
+                        id: '2',
+                        cfi: '',
+                        name: '第一个书签',
+                        posY: 1
+                    }
+                ],
                 page: {
                     menu: [
                         {
@@ -143,6 +164,12 @@
                             icon: 'info',
                             click: this.toggleInfo,
                             title: '书籍信息'
+                        },
+                        {
+                            type: 'icon',
+                            icon: 'bookmarks',
+                            click: this.toggleBookmark,
+                            title: '书签'
                         }
                     ]
                 }
@@ -181,6 +208,7 @@
                 })
                 this.book.ready.all.then(() => {
                     console.log('finish')
+                    console.log(this.book)
                     this.loading = false
                 })
                 this.book.renderTo("area").then(() => {
@@ -192,15 +220,18 @@
             },
             init2() {
                 let bookId = this.$route.params.id
-                if (!bookId) {
+                this.bookId = bookId
+                if (!this.bookId) {
                     return
                 }
                 bookDb.init(() => {
-                    bookDb.getBook(bookId, book => {
+                    bookDb.getBook(this.bookId, book => {
                         console.log(book)
                         this.loadBook(book.content)
                     })
                 })
+                // get bookmarks
+                this.bookmarks = this.$storage.get('bookmarks-' + this.bookId, [])
             },
             initEvent() {
                 console.log('初始化事件')
@@ -247,6 +278,19 @@
                 this.open = false
                 this.book.goto(item.href)
             },
+            gotoBookmark(bookmark) {
+                this.book.goto(bookmark.cfi)
+//                Book.displayChapter('/6/4[chap01ref]!/4[body01]/10');
+            },
+            addBookmark() {
+                this.bookmarks.unshift({
+                    id: '' + new Date().getTime(), // TODO
+                    cfi: this.locationCfi,
+                    name: '未命名书签', // TODO
+                    posY: 1 // TODO
+                })
+                this.$storage.set('bookmarks-' + this.bookId, this.bookmarks)
+            },
             loadBook(content) {
                 this.book = ePub({
                     bookPath: content,
@@ -268,6 +312,7 @@
                 })
                 this.book.ready.all.then(() => {
                     console.log('finish')
+                    console.log(this.book)
                     this.loading = false
                 })
                 this.book.renderer.forceSingle(true)
@@ -276,6 +321,15 @@
                 this.book.on('renderer:chapterDisplayed',() => {
                     this.info.page = 1
                 })
+                this.book.on('book:pageChanged', function(location){
+                    console.log('book:pageChanged')
+                    console.log(location.anchorPage, location.pageRange)
+                });
+                this.book.on('renderer:locationChanged', locationCfi => {
+                    console.log('renderer:locationChanged')
+                    console.log(locationCfi)
+                    this.locationCfi = locationCfi
+                });
                 this.book.on('renderer:mouseup', (event) => {
                     console.log('啦啦')
                     //释放后检测用户选中的文字
