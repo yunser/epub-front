@@ -129,7 +129,7 @@
                 meta: null,
                 infoVisible: false,
                 settingVisible: false,
-                bookmarkVisible: true,
+                bookmarkVisible: false,
                 loading: true,
                 bookmarks: [
                     {
@@ -294,8 +294,8 @@
             loadBook(content) {
                 this.book = ePub({
                     bookPath: content,
-//                    width: 400,
-//                    height: 600,
+                   width: 300,
+                //    height: 400,
 //                    spreads: false,
                     restore: false
                 })

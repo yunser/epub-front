@@ -7,7 +7,7 @@
                         <div class="name">{{ book.name }}</div>
                         <div class="author">{{ book.author }}</div>
                         <a class="remove" href="#" @click.stop.prevent="remove(book)">删除</a>
-                        <a class="remove" href="#" @click.stop.prevent="download(book)">下载</a>
+                        <!-- <a class="remove" href="#" @click.stop.prevent="download(book)">下载</a> -->
                     </router-link>
                 </li>
             </ul>
@@ -50,19 +50,13 @@
                             type: 'icon',
                             icon: 'add',
                             click: this.add,
-                            title: '添加书籍'
+                            title: '添加本地书籍'
                         },
                         {
                             type: 'icon',
-                            icon: 'info',
-                            to: '/help',
-                            title: '设置'
-                        },
-                        {
-                            type: 'icon',
-                            icon: 'help',
-                            to: '/help',
-                            title: '帮助'
+                            icon: 'cloud_download',
+                            click: this.addLink,
+                            title: '添加云端书籍'
                         }
                     ]
                 }
@@ -102,6 +96,36 @@
 //                console.log(book)
 //                console.log('删除书籍')
 //                await bookDb.deleteBook('1')
+            },
+            addLink() {
+                let link = prompt('请输入链接')
+                console.log(link)
+                this.book = ePub(link, {
+                    width: 400,
+                    height: 600,
+                    spreads: false,
+                    restore: true
+                })
+                this.book.getMetadata().then(meta => {
+                    console.log('getMetadata')
+                    console.log(meta)
+                    bookDb.init(() => {
+                        bookDb.addBook({
+                            type: 'link',
+                            id: '' + new Date().getTime(),
+                            name: meta.bookTitle,
+                            author: meta.creator,
+                            content: link
+                        }, () => {
+                            bookDb.getBooks(data => {
+                                console.log('获取所有书籍')
+                                this.books = data
+                                console.log(data)
+                            })
+
+                        })
+                    })
+                })
             },
             remove(book) {
                 bookDb.init(() => {
@@ -165,7 +189,6 @@
                             })
                         })
                     })
-                    this.loadBook(content)
                 }
                 reader.readAsArrayBuffer(file)
             }
