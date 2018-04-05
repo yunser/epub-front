@@ -14,7 +14,7 @@
                 <ui-list>
                     <ui-list-item :title="item.label"
                                   :key="item.label"
-                                  @click="goto(item)"
+                                  @click="gotoDirectory(item)"
                                   v-for="item in toc"/>
                 </ui-list>
             </div>
@@ -83,7 +83,41 @@
                 <ui-icon-button icon="close" @click="toggleSetting" slot="left" />
             </ui-appbar>
             <div class="setting-body">
-                暂无可设置项
+                <ui-select-field v-model="options.fontFamily" label="字体">
+                    <ui-menu-item value="Microsoft Yahei, Heiti SC, Heiti TC" title="黑体"/>
+                    <ui-menu-item value="SimSun, Songti SC, Songti TC" title="宋体"/>
+                    <ui-menu-item value="KaiTi, Kaiti SC, Kaiti TC" title="楷体"/>
+                    <ui-menu-item value="YouYuan, Yuanti SC, Yuanti TC" title="圆体"/>
+                    <ui-menu-item value="PingFang SC, PingFang TC" title="方体（Mac only）"/>
+                </ui-select-field>
+                <ui-text-field v-model="options.fontSize" label="文字大小" />
+                <!-- <ui-select-field v-model="options.bold" label="粗细">
+                    <ui-menu-item value="normal" title="默认"/>
+                    <ui-menu-item value="bold" title="加粗"/>
+                </ui-select-field>
+                <ui-select-field v-model="options.bold" label="字间距">
+                    <ui-menu-item value="normal" title="0.8"/>
+                    <ui-menu-item value="normal" title="0.9"/>
+                    <ui-menu-item value="bold" title="1.0"/>
+                    <ui-menu-item value="bold" title="1.2"/>
+                    <ui-menu-item value="bold" title="1.4"/>
+                </ui-select-field>
+                <ui-select-field v-model="options.bold" label="行间距">
+                    <ui-menu-item value="normal" title="0.8"/>
+                    <ui-menu-item value="normal" title="0.9"/>
+                    <ui-menu-item value="bold" title="1.0"/>
+                    <ui-menu-item value="bold" title="1.2"/>
+                    <ui-menu-item value="bold" title="1.4"/>
+                </ui-select-field>
+                <ui-select-field v-model="options.bold" label="阅读区域大小">
+                    <ui-menu-item value="normal" title="700"/>
+                    <ui-menu-item value="normal" title="800"/>
+                    <ui-menu-item value="bold" title="950"/>
+                    <ui-menu-item value="bold" title="1000"/>
+                    <ui-menu-item value="bold" title="1100"/>
+                    <ui-menu-item value="bold" title="1200"/>
+                    <ui-menu-item value="bold" title="1400"/>
+                </ui-select-field> -->
             </div>
         </ui-drawer>
         <ui-drawer class="bookmark-drawer" right :open="bookmarkVisible" :docked="false" @close="toggleBookmark()">
@@ -101,6 +135,25 @@
             </ui-list>
             <div class="bookmark-body">
                 <div v-if="!bookmarks.length">暂无书签，点击 “+” 添加书签</div>
+            </div>
+        </ui-drawer>
+        <ui-drawer class="search-drawer" right :open="searchVisible" :docked="false" @close="toggleSearch()">
+            <ui-appbar title="搜索">
+                <ui-icon-button icon="close" @click="toggleSearch" title="关闭" slot="left" />
+            </ui-appbar>
+            <div class="search-body">
+                <ui-text-field  v-model="keyword" />
+                <ui-raised-button label="搜索" @click="search" />
+                <div v-if="results">
+                    <div v-if="!results.length">搜索不到结果</div>
+                    <ul class="result-list">
+                        <li class="item" v-for="result in results">
+                            <a class="link" href="#" @click.prevent="gotoCfi(result.cfi)">
+                                {{ result.excerpt }}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </ui-drawer>
         <div v-if="info">
@@ -127,9 +180,8 @@
                 toc: [],
                 meta: null,
                 infoVisible: false,
-                settingVisible: false,
-                bookmarkVisible: false,
                 loading: true,
+                bookmarkVisible: false,
                 bookmarks: [
                     {
                         id: '1',
@@ -144,8 +196,24 @@
                         posY: 1
                     }
                 ],
+                settingVisible: false,
+                options: {
+                    bgColor: '#fff',
+                    fontSize: 16,
+                    fontFamily: 'Microsoft Yahei, Heiti SC, Heiti TC'
+                },
+                // search
+                searchVisible: true,
+                keyword: '',
+                results: null,
                 page: {
                     menu: [
+                        {
+                            type: 'icon',
+                            icon: 'search',
+                            click: this.toggleSearch,
+                            title: '搜索'
+                        },
                         {
                             type: 'icon',
                             icon: 'list',
@@ -175,8 +243,7 @@
             }
         },
         mounted() {
-//            this.init()
-            this.init2()
+            this.init()
             this.initEvent()
         },
         destroyed() {
@@ -184,39 +251,67 @@
             document.removeEventListener('keydown', this.onKeyDown)
         },
         methods: {
-            init() {
-                let path = 'http://img1.yunser.com/epubtmp/'
-//            let path = 'http://img1.yunser.com/epub/test.epub'
-                this.book = ePub(path, {
-                    width: 400,
-                    height: 600,
-                    spreads: false,
-                    restore: true
-                })
-                this.book.getMetadata().then(meta => {
-                    this.meta = meta
-                    console.log('getMetadata')
-                    console.log(meta)
-                    this.title = meta.bookTitle + ' – ' + meta.creator
-                })
-                this.book.getToc().then(toc => {
-                    console.log('toc')
-                    console.log(toc)
-                    this.toc = toc
-                })
-                this.book.ready.all.then(() => {
-                    console.log('finish')
-                    console.log(this.book)
-                    this.loading = false
-                })
-                this.book.renderTo("area").then(() => {
-                    console.log('renderTo finish')
-
-                    //Book.setStyle("width", "400px");
-//                this.book.displayChapter(3, true)
-                })
+            search() {
+                if (!this.keyword.length) {
+                    alert('请输入关键词')
+                    return
+                }
+                let book = this.book
+                let q = this.keyword
+                return new Promise((resolve, reject) => {
+                    var resultPromises = [];
+                    for (var i = 0; i < book.spine.length; i++) {
+                    var spineItem = book.spine[i];
+                    resultPromises.push(new Promise((resolve, reject) => {
+                        new Promise(function(resolve, reject) {
+                        resolve(new EPUBJS.Chapter(spineItem, book.store, book.credentials));
+                        }).then(function(chapter) {
+                        return new Promise(function(resolve, reject) {
+                            chapter.load().then(function() {
+                            resolve(chapter);
+                            }).catch(reject);
+                        });
+                        }).then(function(chapter) {
+                        return Promise.resolve(chapter.find(q));
+                        }).then(function(result) {
+                        resolve(result);
+                        });
+                    }));
+                    }
+                    Promise.all(resultPromises).then((results) => {
+                        return new Promise((resolve, reject) => {
+                            resolve(results);
+                            var mergedResults = [].concat.apply([], results);
+                            console.log(mergedResults);
+                            this.results = mergedResults
+                            console.log('搜索结果')
+                            console.log(this.results)
+                            // for (var i = 0; i < mergedResults.length; i++) {
+                            //     try {
+                            //         var er = document.createElement("a");
+                            //         er.classList.add("result");
+                            //         er.href = "javascript:void(0);";
+                            //         er.addEventListener("click", function() {
+                            //         console.log(er.getAttribute("data-location"));
+                            //         window.book.goto(er.getAttribute("data-location"));
+                            //         });
+                            //         er.setAttribute("data-location", mergedResults[i].cfi);
+                            //         er.innerHTML = mergedResults[i].excerpt;
+                            //         r.appendChild(er);
+                            //     } catch (e) {
+                            //         console.warn(e);
+                            //     }
+                            // }
+                        });
+                    });
+                });
             },
-            init2() {
+            init() {
+                                // let path = 'http://img1.yunser.com/epubtmp/'
+//            let path = 'http://img1.yunser.com/epub/test.epub'
+
+                this.options = this.$storage.get('options', this.options)
+
                 let bookId = this.$route.params.id
                 this.bookId = bookId
                 if (!this.bookId) {
@@ -272,7 +367,10 @@
             toggleBookmark() {
                 this.bookmarkVisible = !this.bookmarkVisible
             },
-            goto(item) {
+            toggleSearch() {
+                this.searchVisible = !this.searchVisible
+            },
+            gotoDirectory(item) {
                 this.open = false
                 this.book.goto(item.href)
             },
@@ -280,6 +378,9 @@
                 this.book.goto(bookmark.cfi)
                 this.bookmarkVisible = false
 //                Book.displayChapter('/6/4[chap01ref]!/4[body01]/10');
+            },
+            gotoCfi(cfi) {
+                this.book.goto(cfi)
             },
             removeBookmark(bookmark) {
                 for (let i = 0; i < this.bookmarks.length; i++) {
@@ -363,16 +464,19 @@
                 })
             },
             setStyle() {
-                let options = this.$storage.get('options', {
-                    bgColor: '#fff',
-                    fontSize: 1.2,
-                    fontFamily: '宋体'
-                })
-
-                this.book.setStyle('font-size', options.fontSize + 'em')
-                this.book.setStyle('background-color', options.bgColor)
-                this.book.setStyle('font-family', options.fontFamily)
+                this.book.setStyle('font-size', this.options.fontSize + 'px')
+                this.book.setStyle('background-color', this.options.bgColor)
+                this.book.setStyle('font-family', this.options.fontFamily)
                 this.book.renderer.forceSingle(false)
+            }
+        },
+        watch: {
+            options: {
+                deep: true,
+                handler() {
+                    this.$storage.set('options', this.options)
+                    this.setStyle()
+                }
             }
         }
     }
@@ -443,13 +547,35 @@
             }
         }
     }
+    .search-drawer {
+        width: 400px;
+        max-width: 100%;
+        .search-body {
+            padding: 16px;
+            .key {
+                width: 100px;
+            }
+        }
+        .result-list {
+            position: absolute;
+            top: 128px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+            .item {
+                padding: 0 16px;
+                margin-bottom: 8px;
+            }
+        }
+    }
 </style>
 
 <style lang="scss">
     .toc-drawer {
         width: 400px;
         max-width: 100%;
-        .mu-item-title {
+        .ui-item-title {
             white-space: nowrap;
             text-overflow: ellipsis;
         }
