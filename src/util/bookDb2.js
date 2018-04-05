@@ -42,7 +42,7 @@ class BookDb {
 
         var req2 = g_store.get('2');            // 获取索引userId为1的数据
         req2.onsuccess = function(){
-            console.log(this.result);    // linxin
+            // console.log(this.result);    // linxin
         }
 
         var req3 = g_store.delete('2');             // 删除索引为1的数据
@@ -70,7 +70,7 @@ class BookDb {
         let req = g_store.get(id)
         req.onsuccess = e => {
             console.log('getBook')
-            console.log(e.target.result)
+            // console.log(e.target.result)
             cb && cb(e.target.result)
         }
     }

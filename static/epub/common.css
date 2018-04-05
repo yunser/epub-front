@@ -1,0 +1,67 @@
+::selection {
+    background: #00ad96;
+    color: #fff;
+}
+
+::-moz-selection {
+    background: #00ad96;
+    color: #fff;
+}
+
+/* annotation highlight */
+
+[class*=hl-] {
+    color: #FFF;
+}
+
+.hl-red {
+    background-color: #FFBA84;
+}
+
+.hl-orange {
+    background-color: #E2943B;
+}
+
+.hl-yellow {
+    background-color: #F7C242;
+}
+
+.hl-green {
+    background-color: #86C166;
+}
+
+.hl-blue {
+    background-color: #33A6B8;
+}
+
+.hl-purple {
+    background-color: #8A6BBE;
+}
+
+[class*=line-] {
+    border-bottom: .125em solid;
+}
+
+.line-red {
+    border-color: #FFBA84;
+}
+
+.line-orange {
+    border-color: #E2943B;
+}
+
+.line-yellow {
+    border-color: #F7C242;
+}
+
+.line-green {
+    border-color: #86C166;
+}
+
+.line-blue {
+    border-color: #33A6B8;
+}
+
+.line-purple {
+    border-color: #8A6BBE;
+}

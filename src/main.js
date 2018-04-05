@@ -5,6 +5,7 @@ import http from '@/util/http'
 import qs from 'qs'
 import storage from '@/util/storage'
 import ui from './components/index'
+import './util/highlight'
 // 全部加载
 import YunserUI from 'yunser-ui-vue'
 import 'yunser-ui-vue/dist/yunser-ui.css'

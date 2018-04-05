@@ -27,12 +27,13 @@
 <script>
     /* eslint-disable */
     import bookDb from '../util/bookDb2'
-    // import reader from '../util/reader'
+    import reader from '../util/reader'
     import {getCoverURL} from '../util/bookUtil'
 
     export default {
         data () {
             return {
+                reader: null,
                 title: 'epub 阅读器',
                 books: [
                     {
@@ -76,6 +77,7 @@
                 document.getElementById('file').click()
             },
             init() {
+                this.reader = reader
                 console.log('初始化')
                 bookDb.init(() => {
 //                    bookDb.init2()

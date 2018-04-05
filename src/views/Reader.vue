@@ -1,7 +1,8 @@
 <template>
-    <my-page :title="title" :page="page">
+    <my-page :title="title" :page="page" :style="pageStyle">
         <div id="wrapper">
             <div id="area"></div>
+            <div class="divider"></div>
         </div>
         <div id="prev" class="arrow" @click="prev" v-if="book">‹</div>
         <div id="next" class="arrow" @click="next" v-if="book">›</div>
@@ -33,7 +34,7 @@
                         <tr class="item">
                             <td class="key">封面</td>
                             <td class="value">
-                                <img :src="cover">
+                                <img class="cover" :src="cover">
                                 <!-- {{ meta.cover }} -->
                             </td>
                         </tr>
@@ -55,7 +56,7 @@
                         <!--</tr>-->
                         <tr class="item">
                             <td class="key">语言</td>
-                            <td class="value">{{ meta.language }}</td>
+                            <td class="value">{{ meta.language | lang }}</td>
                         </tr>
                         <tr class="item">
                             <td class="key">布局</td>
@@ -63,7 +64,7 @@
                         </tr>
                         <tr class="item">
                             <td class="key">修改时间</td>
-                            <td class="value">{{ meta.modified_date }}</td>
+                            <td class="value">{{ meta.modified_date | time }}</td>
                         </tr>
                         <!--<tr class="item">-->
                         <!--<td class="key">orientation</td>-->
@@ -71,7 +72,7 @@
                         <!--</tr>-->
                         <tr class="item">
                             <td class="key">出版日期</td>
-                            <td class="value">{{ meta.pubdate }}</td>
+                            <td class="value">{{ meta.pubdate | time }}</td>
                         </tr>
                         <tr class="item">
                             <td class="key">出版社</td>
@@ -97,7 +98,16 @@
                     <ui-menu-item value="YouYuan, Yuanti SC, Yuanti TC" title="圆体"/>
                     <ui-menu-item value="PingFang SC, PingFang TC" title="方体（Mac only）"/>
                 </ui-select-field>
-                <ui-text-field v-model="options.fontSize" label="文字大小" />
+                <ui-text-field type="number" v-model="options.fontSize" label="文字大小" />
+                <!-- <ui-text-field type="number" v-model.number="options.theme" label="主题（0-3）" /> -->
+                <h3 class="form-label">主题</h3>
+                <ul class="theme-list">
+                    <li class="item" 
+                        :title="theme.name"
+                        v-for="theme, index in themes"
+                        @click="selectTheme(index)"
+                        :style="themeStyle(theme)"></li>
+                </ul>
                 <!-- <ui-select-field v-model="options.bold" label="粗细">
                     <ui-menu-item value="normal" title="默认"/>
                     <ui-menu-item value="bold" title="加粗"/>
@@ -125,6 +135,9 @@
                     <ui-menu-item value="bold" title="1200"/>
                     <ui-menu-item value="bold" title="1400"/>
                 </ui-select-field> -->
+                <div>
+                    <ui-raised-button label="清除浏览器缓存" @click="clearStorage" />
+                </div>
             </div>
         </ui-drawer>
         <ui-drawer class="bookmark-drawer" right :open="bookmarkVisible" :docked="false" @close="toggleBookmark()">
@@ -163,25 +176,50 @@
                 </div>
             </div>
         </ui-drawer>
-        <div v-if="info">
+        <div class="page-info" v-if="info">
             {{ info.page }} / {{ info.totalPage }} {{ info.page / info.totalPage * 100}}%
             <!--<div v-if="this.book.currentChapter">当前章节页数：{{ this.book.currentChapter.pages }}</div>-->
+        </div>
+        <!--select menu-->
+        <div class="select-menu" id="select-menu">
+            <ul class="highlight-list">
+                <li class="item" 
+                    :style="{'background-color': highlight.color}"
+                    @click="highlightText(index)"
+                    v-for="highlight, index in highlights"></li>
+            </ul>
+            <div class="ann-color-bar" title="add highlight">
+                <span class="ann-color hl-red bg-red"></span>
+                <span class="ann-color hl-orange bg-yellow"></span>
+                <span class="ann-color hl-green bg-green"></span>
+                <span class="ann-color hl-blue bg-blue"></span>
+                <span class="ann-color hl-yellow bg-orange"></span>
+            </div>
+            <div class="divider"></div>
+            <div class="menu-item" title="delete highlight/underline" @click="removeHighlight">Delete</div>
+            <div class="menu-item" title="copy text" @click="copy">Copy</div>
         </div>
     </my-page>
 </template>
 
 <script>
-    /* eslint-disable */
+    /* eslint-disable2 */
     import bookDb from '../util/bookDb2'
     import {getCoverURL} from '../util/bookUtil'
+    import {format} from '../util/time'
+    import reader from '../util/reader'
+    const ePub = window.ePub
+    const EPUBJS = window.EPUBJS
+    const QiuPen = window.QiuPen
 
     export default {
         data () {
             return {
+                reader: null,
                 title: 'epub 阅读器',
                 info: {
                     page: 1,
-                    totalPage: 10,
+                    totalPage: 10
                 },
                 book: null,
                 open: false,
@@ -209,12 +247,66 @@
                 options: {
                     bgColor: '#fff',
                     fontSize: 16,
-                    fontFamily: 'Microsoft Yahei, Heiti SC, Heiti TC'
+                    fontFamily: 'Microsoft Yahei, Heiti SC, Heiti TC',
+                    lineHeight: 2,
+                    theme: 0
                 },
                 // search
                 searchVisible: false,
                 keyword: '',
                 results: null,
+                themes: [
+                    {
+                        id: '1',
+                        name: '白色',
+                        color: '#000',
+                        bgColor: '#fff'
+                    },
+                    {
+                        id: '2',
+                        name: '浅棕色',
+                        color: '#000',
+                        bgColor: '#f9f4e9'
+                    },
+                    {
+                        id: '3',
+                        name: '护眼',
+                        color: '#000',
+                        bgColor: '#ceeaba'
+                    },
+                    {
+                        id: '4',
+                        name: '夜间',
+                        color: '#fff',
+                        bgColor: '#000'
+                    }
+                ],
+                highlights: [
+                    {
+                        name: 'red',
+                        color: '#FFBA84'
+                    },
+                    {
+                        name: 'orange',
+                        color: '#E2943B'
+                    },
+                    {
+                        name: 'yellow',
+                        color: '#F7C242'
+                    },
+                    {
+                        name: 'green',
+                        color: '#86C166'
+                    },
+                    {
+                        name: 'blue',
+                        color: '#33A6B8'
+                    },
+                    {
+                        name: 'purple',
+                        color: '#8A6BBE'
+                    }
+                ],
                 page: {
                     menu: [
                         {
@@ -246,8 +338,22 @@
                             icon: 'bookmarks',
                             click: this.toggleBookmark,
                             title: '书签'
+                        },
+                        {
+                            type: 'icon',
+                            icon: 'fullscreen',
+                            click: this.fullscreen,
+                            title: '全屏/取消全屏'
                         }
                     ]
+                }
+            }
+        },
+        computed: {
+            pageStyle() {
+                return {
+                    color: this.themes[this.options.theme].color,
+                    'background-color': this.themes[this.options.theme].bgColor
                 }
             }
         },
@@ -259,7 +365,85 @@
             this.book && this.book.destroy()
             document.removeEventListener('keydown', this.onKeyDown)
         },
+        filters: {
+            lang(value) {
+                switch (value) {
+                    case 'en':
+                        return '英语'
+                    case 'zh':
+                        return '中文'
+                    default:
+                        return value
+                }
+            },
+            time(value) {
+                if (!value) {
+                    return ''
+                }
+                return format(new Date(value), 'yyyy-MM-dd')
+            }
+        },
         methods: {
+            copy() {
+                let iframe = document.getElementsByTagName('iframe')[0]
+                let result = iframe.contentWindow.document.execCommand('copy', false, null)
+                if (!result) {
+                    console.log('failed to copy text to clipboard')
+                }
+                document.getElementById('select-menu').style.visibility = 'hidden'
+            },
+            removeHighlight() {
+                QiuPen.highlighter.unhighlightSelection()
+                QiuPen.save(this.book, this.bookId, this.selectedText)
+                document.getElementById('select-menu').style.visibility = 'hidden'
+            },
+            highlightText(index) {
+                let name = 'hl-' + this.highlights[index].name
+                QiuPen.highlighter.highlightSelection(name)
+                QiuPen.save(this.book, this.bookId)
+            },
+            fullscreen() {
+                // 进入全屏模式
+                function launchFullscreen(element) {
+                    if (element.requestFullscreen) {
+                        element.requestFullscreen()
+                    } else if (element.mozRequestFullScreen) {
+                        element.mozRequestFullScreen()
+                    } else if (element.webkitRequestFullscreen) {
+                        element.webkitRequestFullscreen()
+                    } else if (element.msRequestFullscreen) {
+                        element.msRequestFullscreen()
+                    }
+                }
+
+                // 退出全屏模式
+                function exitFullscreen() {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen()
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen()
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen()
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen()
+                    }
+                }
+
+                if (this.isFullScreen) {
+                    exitFullscreen()
+                } else {
+                    launchFullscreen(document.documentElement)
+                }
+                this.isFullScreen = !this.isFullScreen
+            },
+            themeStyle(theme) {
+                return {
+                    'background-color': theme.bgColor
+                }
+            },
+            selectTheme(index) {
+                this.options.theme = index
+            },
             search() {
                 if (!this.keyword.length) {
                     alert('请输入关键词')
@@ -268,61 +452,45 @@
                 let book = this.book
                 let q = this.keyword
                 return new Promise((resolve, reject) => {
-                    var resultPromises = [];
+                    var resultPromises = []
                     for (var i = 0; i < book.spine.length; i++) {
-                    var spineItem = book.spine[i];
+                    var spineItem = book.spine[i]
                     resultPromises.push(new Promise((resolve, reject) => {
                         new Promise(function(resolve, reject) {
-                        resolve(new EPUBJS.Chapter(spineItem, book.store, book.credentials));
+                            resolve(new EPUBJS.Chapter(spineItem, book.store, book.credentials))
                         }).then(function(chapter) {
-                        return new Promise(function(resolve, reject) {
-                            chapter.load().then(function() {
-                            resolve(chapter);
-                            }).catch(reject);
-                        });
+                            return new Promise(function(resolve, reject) {
+                                chapter.load().then(function() {
+                                resolve(chapter)
+                                }).catch(reject)
+                            })
                         }).then(function(chapter) {
-                        return Promise.resolve(chapter.find(q));
-                        }).then(function(result) {
-                        resolve(result);
-                        });
-                    }));
+                            return Promise.resolve(chapter.find(q))
+                            }).then(function(result) {
+                        resolve(result)
+                        })
+                    }))
                     }
                     Promise.all(resultPromises).then((results) => {
                         return new Promise((resolve, reject) => {
-                            resolve(results);
-                            var mergedResults = [].concat.apply([], results);
-                            console.log(mergedResults);
+                            resolve(results)
+                            var mergedResults = [].concat.apply([], results)
                             this.results = mergedResults
-                            console.log('搜索结果')
-                            console.log(this.results)
-                            // for (var i = 0; i < mergedResults.length; i++) {
-                            //     try {
-                            //         var er = document.createElement("a");
-                            //         er.classList.add("result");
-                            //         er.href = "javascript:void(0);";
-                            //         er.addEventListener("click", function() {
-                            //         console.log(er.getAttribute("data-location"));
-                            //         window.book.goto(er.getAttribute("data-location"));
-                            //         });
-                            //         er.setAttribute("data-location", mergedResults[i].cfi);
-                            //         er.innerHTML = mergedResults[i].excerpt;
-                            //         r.appendChild(er);
-                            //     } catch (e) {
-                            //         console.warn(e);
-                            //     }
-                            // }
-                        });
-                    });
-                });
+                        })
+                    })
+                })
             },
             init() {
-                                // let path = 'http://img1.yunser.com/epubtmp/'
-//            let path = 'http://img1.yunser.com/epub/test.epub'
+                this.reader = reader
+                // http://img1.yunser.com/epub/test.epub
+                // let path = 'http://img1.yunser.com/epubtmp/'
+                document.getElementById('area').style.height = window.innerHeight - 100 + 'px'
 
                 this.options = this.$storage.get('options', this.options)
 
                 let bookId = this.$route.params.id
                 this.bookId = bookId
+                // TODO
                 if (!this.bookId) {
                     return
                 }
@@ -335,20 +503,24 @@
                 // get bookmarks
                 this.bookmarks = this.$storage.get('bookmarks-' + this.bookId, [])
             },
+            initAfterLoadedBook() {
+                QiuPen.init()
+            },
             initEvent() {
                 console.log('初始化事件')
                 document.addEventListener('keydown', this.onKeyDown = e => {
                     console.log(e.keyCode)
-                    switch(e.keyCode) {
+                    switch (e.keyCode) {
                         case 27: // Esc
                             this.$router.push('/')
                             break
                         case 37: // left
                         case 38: // up
-                            this.book.prevPage()
+                            this.prev()
                             break
                         case 39: // right
                         case 40: // down
+                        this.next()
                             this.book.nextPage()
                             break
                     }
@@ -386,7 +558,6 @@
             gotoBookmark(bookmark) {
                 this.book.goto(bookmark.cfi)
                 this.bookmarkVisible = false
-//                Book.displayChapter('/6/4[chap01ref]!/4[body01]/10');
             },
             gotoCfi(cfi) {
                 this.book.goto(cfi)
@@ -413,74 +584,114 @@
             loadBook(content) {
                 this.book = ePub({
                     bookPath: content,
-                   width: 300,
+                //    width: 300,
                 //    height: 400,
-//                    spreads: false,
-                    restore: false
+                    restore: false,
+                    spreads: false
                 })
                 this.book.getMetadata().then(meta => {
                     this.meta = meta
                     // this.meta.cover = this.book.cover
-                    console.log('getMetadata')
-                    console.log(meta)
                     this.title = meta.bookTitle + ' – ' + meta.creator
                 })
                 this.book.getToc().then(toc => {
-                    console.log('toc')
-                    console.log(toc)
                     this.toc = toc
                 })
+                this.book.pageListReady.then(pageList => {
+                    console.log('申请的页数')
+                    console.log(this.book.pagination)
+                    this.info.totalPage = this.book.pagination.totalPages
+                })
                 this.book.ready.all.then(() => {
-                    console.log('finish')
                     console.log(this.book)
                     getCoverURL(this.book, cover => {
                         this.cover = cover
                     })
                     this.loading = false
+                    this.initAfterLoadedBook()
                 })
-                this.book.renderer.forceSingle(true)
-                //epub.js能捕获用户在书籍上的鼠标释放事件，使用self.selected是为了防止用户重复选中。
-                //监听 章节渲染
-                this.book.on('renderer:chapterDisplayed',() => {
-                    this.info.page = 1
+                this.book.renderer.forceSingle(false)
+                // epub.js能捕获用户在书籍上的鼠标释放事件，使用self.selected是为了防止用户重复选中。
+                // 监听 章节渲染
+                this.book.on('renderer:chapterDisplayed', () => {
+                    // this.info.page = 1
+                    // 创建动态脚本
+                    function createScript(url) {
+                        var script = document.createElement('script')
+                        script.type = 'text/javascript'
+                        script.src = url
+
+                        return script
+                    }
+
+                    // 创建动态样式表
+                    function createLink(url) {
+                        var link = document.createElement('link')
+                        link.rel = 'stylesheet'
+                        link.type = 'text/css'
+                        link.href = url
+
+                        return link
+                    }
+
+                    var link = createLink('/static/epub/common.css')
+                    var script = createScript('/static/epub/selection.js')
+                    var iframe = document.getElementsByTagName('iframe')[0]
+                    iframe.contentDocument.head.appendChild(link)
+                    iframe.contentDocument.body.appendChild(script)
+
+                    QiuPen.create(iframe.contentWindow.document)
+                    QiuPen.load(this.book, this.bookId)
                 })
-                this.book.on('book:pageChanged', function(location){
-                    console.log('book:pageChanged')
+                this.book.on('book:pageChanged', function(location) {
                     console.log(location.anchorPage, location.pageRange)
-                });
+                })
                 this.book.on('renderer:locationChanged', locationCfi => {
-                    console.log('renderer:locationChanged')
-                    console.log(locationCfi)
                     this.locationCfi = locationCfi
-                });
-                this.book.on('renderer:mouseup', (event) => {
-                    console.log('啦啦')
-                    //释放后检测用户选中的文字
-                    var render = this.book.renderer.render;
-                    var selectedContent = render.window.getSelection();
-                    this.selection = selectedContent;
+                })
+                this.book.on('renderer:mouseup', event => {
+                    // 释放后检测用户选中的文字
+                    var render = this.book.renderer.render
+                    var selectedContent = render.window.getSelection()
+                    this.selection = selectedContent
                     console.log(this.selection)
-                    //若当前用户不在选中状态，并且选中文字不为空
-                    if (this.selected == false) {
+                    console.log(this.selection.anchorNode.data.substring(this.selection.baseOffset, this.selection.extentOffset))
+                    this.selectedText = this.selection.anchorNode.data
+                    // 若当前用户不在选中状态，并且选中文字不为空
+                    if (this.selected === false) {
                         console.log('啦啦2')
-                        if (selectedContent.toString() && (selectedContent.toString() != "")) {
+                        if (selectedContent.toString() && (selectedContent.toString() !== '')) {
                             console.log('啦啦2')
-                            this.selected = true;
+                            this.selected = true
                         }
                     }
-                });
-                this.book.renderTo("area").then(() => {
-                    console.log('renderTo finish')
+                })
+                this.book.renderTo('area').then(() => {
                     this.setStyle()
-                    //Book.setStyle("width", "400px");
-//                this.book.displayChapter(3, true)
+                    this.book.goto('epubcfi(/6/6[id71]!/4[0-622b49af2d5d40458b0c96129dcf4ccb]/2/2[calibre_pb_0]/1:0)')
                 })
             },
             setStyle() {
+                // TODO ???
+                if (!this.book) {
+                    return
+                }
                 this.book.setStyle('font-size', this.options.fontSize + 'px')
                 this.book.setStyle('background-color', this.options.bgColor)
                 this.book.setStyle('font-family', this.options.fontFamily)
+                this.book.setStyle('line-height', 3)
+
                 this.book.renderer.forceSingle(false)
+
+                this.book.setStyle('color', this.themes[this.options.theme].color)
+                this.book.setStyle('background-color', this.themes[this.options.theme].bgColor)
+            },
+            clearStorage() {
+                let clear = confirm('清除浏览器缓存会删除所有的书签、标注和笔记')
+                if (clear) {
+                    localStorage.clear() // TODO
+                    // TODO
+                }
             }
         },
         watch: {
@@ -496,98 +707,180 @@
 </script>
 
 <style lang="scss" scoped>
-    .ui-file-button{
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        opacity: 0;
+
+#prev {
+    left: 40px;
+}
+
+#next {
+    right: 40px;
+}
+
+.arrow {
+    position: absolute;
+    top: 50%;
+    margin-top: -32px;
+    font-size: 64px;
+    color: #E2E2E2;
+    font-family: arial, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    &:hover {
+        color: #777;
     }
-    #wrapper {
-        width: 480px;
-        height: 640px;
-        overflow: hidden;
-        border: 1px solid #ccc;
-        margin: 20px auto;
-        background: #fff;
-        border-radius: 0 5px 5px 0;
+    &:active {
+        color: #000;
     }
-    #area {
-        width: 480px;
-        height: 650px;
-        margin: -5px auto;
-        -moz-box-shadow: inset 10px 0 20px rgba(0, 0, 0, .1);
-        -webkit-box-shadow: inset 10px 0 20px rgba(0, 0, 0, .1);
-        box-shadow: inset 10px 0 20px rgba(0, 0, 0, .1);
-        padding: 40px 40px;
+}
+
+#wrapper {
+    max-width: 1100px;
+    // padding: 16px;
+    // width: 480px;
+    // height: 640px;
+    margin: 0 auto;
+    overflow: hidden;
+    // border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 0 5px 5px 0;
+}
+#area {
+    // width: 480px;
+    // height: 650px;
+    // margin: -5px auto;
+    // box-shadow: inset 10px 0 20px rgba(0, 0, 0, .1);
+    // padding: 40px 40px;
+}
+.divider {
+    display: none;
+    position: absolute;
+    width: 1px;
+    border-right: 1px #000 solid;
+    height: 80%;
+    z-index: 1;
+    left: 50%;
+    margin-left: -1px;
+    top: 10%;
+    opacity: .15;
+}
+@media all and (min-width: 800px) {
+   .divider {
+       display: block;
+   }
+   .page-info {
+       display: block;
     }
-    .drawer-body {
+}
+.page-info {
+    display: none;
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+}
+.drawer-body {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+}
+.info-drawer {
+    width: 320px;
+    max-width: 100%;
+    .info-body {
         position: absolute;
         top: 64px;
         left: 0;
         right: 0;
         bottom: 0;
         overflow: auto;
-    }
-    .info-drawer {
-        width: 320px;
-        max-width: 100%;
-        .info-body {
-            position: absolute;
-            top: 64px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: auto;
-            padding: 16px;
-            .key {
-                width: 100px;
-            }
+        padding: 16px;
+        .key {
+            width: 100px;
+        }
+        .cover {
+            margin-bottom: 0;
         }
     }
-    .setting-drawer {
-        width: 320px;
-        max-width: 100%;
-        .setting-body {
-            padding: 16px;
-            .key {
-                width: 100px;
-            }
+}
+.setting-drawer {
+    width: 320px;
+    max-width: 100%;
+    .setting-body {
+        padding: 16px;
+        .key {
+            width: 100px;
         }
     }
-    .bookmark-drawer {
-        width: 320px;
-        max-width: 100%;
-        .bookmark-body {
-            padding: 16px;
-            .key {
-                width: 100px;
-            }
+}
+.bookmark-drawer {
+    width: 320px;
+    max-width: 100%;
+    .bookmark-body {
+        padding: 16px;
+        .key {
+            width: 100px;
         }
     }
-    .search-drawer {
-        width: 400px;
-        max-width: 100%;
-        .search-body {
-            padding: 16px;
-            .key {
-                width: 100px;
-            }
-        }
-        .result-list {
-            position: absolute;
-            top: 128px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: auto;
-            .item {
-                padding: 0 16px;
-                margin-bottom: 8px;
-            }
+}
+.search-drawer {
+    width: 400px;
+    max-width: 100%;
+    .search-body {
+        padding: 16px;
+        .key {
+            width: 100px;
         }
     }
+    .result-list {
+        position: absolute;
+        top: 128px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: auto;
+        .item {
+            padding: 0 16px;
+            margin-bottom: 8px;
+        }
+    }
+}
+.theme-list {
+    overflow: hidden;
+    .item {
+        float: left;
+        width: 40px;
+        height: 40px;
+        margin-right: 16px;
+        margin-bottom: 16px;
+        border: 1px solid #999;
+        border-radius: 50%;
+        background-color: #000;
+        cursor: pointer;
+    }
+}
+.form-label {
+    color: rgba(0,0,0,.54);
+    margin-bottom: 8px;
+}
+.highlight-list {
+    overflow: hidden;
+    padding-left: 16px;
+    .item {
+        float: left;
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        margin-bottom: 8px;
+        background-color: #f00;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+}
 </style>
 
 <style lang="scss">
