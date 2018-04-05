@@ -4,11 +4,13 @@
             <ul class="book-list">
                 <li class="item" v-for="book in books">
                     <router-link class="link" :to="'/books/' + book.id" :title="book.name">
-                        <div class="name">{{ book.name }}</div>
-                        <div class="author">{{ book.author }}</div>
-                        <a class="remove" href="#" @click.stop.prevent="remove(book)">删除</a>
                         <!-- <a class="remove" href="#" @click.stop.prevent="download(book)">下载</a> -->
+                        <img class="cover" :src="book.cover" v-if="book.cover" />
+                        <div class="cover-text" v-if="!book.cover">没有封面</div>
                     </router-link>
+                    <div class="name">{{ book.name }}</div>
+                    <a class="remove" href="#" @click.stop.prevent="remove(book)">删除</a>
+                    <!-- <div class="author">{{ book.author }}</div> -->
                 </li>
             </ul>
             <div class="empty-box" v-if="!books.length">
@@ -25,6 +27,8 @@
 <script>
     /* eslint-disable */
     import bookDb from '../util/bookDb2'
+    // import reader from '../util/reader'
+    import {getCoverURL} from '../util/bookUtil'
 
     export default {
         data () {
@@ -173,19 +177,24 @@
                         this.meta = meta
                         console.log('getMetadata')
                         console.log(meta)
-                        bookDb.init(() => {
-                            bookDb.addBook({
-                                id: '' + new Date().getTime(),
-                                name: meta.bookTitle,
-                                author: meta.creator,
-                                content: content
-                            }, () => {
-                                bookDb.getBooks(data => {
-                                    console.log('获取所有书籍')
-                                    this.books = data
-                                    console.log(data)
-                                })
+                        getCoverURL(this.book, cover => {
+                            console.log('首页封面')
+                            console.log(cover)
+                            bookDb.init(() => {
+                                bookDb.addBook({
+                                    id: '' + new Date().getTime(),
+                                    name: meta.bookTitle,
+                                    author: meta.creator,
+                                    content: content,
+                                    cover: cover
+                                }, () => {
+                                    bookDb.getBooks(data => {
+                                        console.log('获取所有书籍')
+                                        this.books = data
+                                        console.log(data)
+                                    })
 
+                                })
                             })
                         })
                     })
@@ -209,7 +218,7 @@
             position: relative;
             float: left;
             width: 140px;
-            height: 200px;
+            height: 196px;
             margin-right: 16px;
             margin-bottom: 16px;
             background-color: #fff;
@@ -224,11 +233,20 @@
         .link {
             display: block;
             height: 100%;
-            padding: 16px;
+            // padding: 16px;
+            margin-bottom: 16px;
             color: inherit;
         }
         .name {
-            font-weight: bold;
+            // font-weight: bold;
+        }
+        .cover {
+            max-width: 100%;
+        }
+        .cover-text {
+            line-height: 196px;
+            text-align: center;
+            color: #999;
         }
         .author {
             position: absolute;

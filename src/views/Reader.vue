@@ -38,7 +38,7 @@
                             </td>
                         </tr>
                         <tr class="item">
-                            <td class="key">创建者</td>
+                            <td class="key">作者</td>
                             <td class="value">{{ meta.creator }}</td>
                         </tr>
                         <tr class="item">
@@ -173,6 +173,7 @@
 <script>
     /* eslint-disable */
     import bookDb from '../util/bookDb2'
+    import {getCoverURL} from '../util/bookUtil'
 
     export default {
         data () {
@@ -187,7 +188,7 @@
                 toc: [],
                 meta: null,
                 cover: null,
-                infoVisible: true,
+                infoVisible: false,
                 loading: true,
                 bookmarkVisible: false,
                 bookmarks: [
@@ -314,24 +315,6 @@
                     });
                 });
             },
-            getCoverURL(callback) {
-                console.log('获取封面')
-                this.book.coverUrl().then(function (blobUrl) {
-                    console.log(blobUrl);
-                    var xhr = new XMLHttpRequest();
-                    xhr.responseType = 'blob';
-                    xhr.onload = function () {
-                        var recoveredBlob = xhr.response;
-                        var reader = new FileReader();
-                        reader.onload = function () {
-                            callback && callback(reader.result);
-                        };
-                        reader.readAsDataURL(recoveredBlob);
-                    };
-                    xhr.open('GET', blobUrl);
-                    xhr.send();
-                });
-            },
             init() {
                                 // let path = 'http://img1.yunser.com/epubtmp/'
 //            let path = 'http://img1.yunser.com/epub/test.epub'
@@ -450,10 +433,8 @@
                 this.book.ready.all.then(() => {
                     console.log('finish')
                     console.log(this.book)
-                    this.getCoverURL(data => {
-                        console.log('什么')
-                        console.log(data)
-                        this.cover = data
+                    getCoverURL(this.book, cover => {
+                        this.cover = cover
                     })
                     this.loading = false
                 })
