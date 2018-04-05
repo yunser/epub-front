@@ -31,6 +31,13 @@
                             <td class="value">{{ meta.bookTitle }}</td>
                         </tr>
                         <tr class="item">
+                            <td class="key">封面</td>
+                            <td class="value">
+                                <img :src="cover">
+                                <!-- {{ meta.cover }} -->
+                            </td>
+                        </tr>
+                        <tr class="item">
                             <td class="key">创建者</td>
                             <td class="value">{{ meta.creator }}</td>
                         </tr>
@@ -143,7 +150,7 @@
             </ui-appbar>
             <div class="search-body">
                 <ui-text-field  v-model="keyword" />
-                <ui-raised-button label="搜索" @click="search" />
+                <ui-raised-button label="全文搜索" @click="search" />
                 <div v-if="results">
                     <div v-if="!results.length">搜索不到结果</div>
                     <ul class="result-list">
@@ -179,7 +186,8 @@
                 open: false,
                 toc: [],
                 meta: null,
-                infoVisible: false,
+                cover: null,
+                infoVisible: true,
                 loading: true,
                 bookmarkVisible: false,
                 bookmarks: [
@@ -203,7 +211,7 @@
                     fontFamily: 'Microsoft Yahei, Heiti SC, Heiti TC'
                 },
                 // search
-                searchVisible: true,
+                searchVisible: false,
                 keyword: '',
                 results: null,
                 page: {
@@ -304,6 +312,24 @@
                             // }
                         });
                     });
+                });
+            },
+            getCoverURL(callback) {
+                console.log('获取封面')
+                this.book.coverUrl().then(function (blobUrl) {
+                    console.log(blobUrl);
+                    var xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+                    xhr.onload = function () {
+                        var recoveredBlob = xhr.response;
+                        var reader = new FileReader();
+                        reader.onload = function () {
+                            callback && callback(reader.result);
+                        };
+                        reader.readAsDataURL(recoveredBlob);
+                    };
+                    xhr.open('GET', blobUrl);
+                    xhr.send();
                 });
             },
             init() {
@@ -411,6 +437,7 @@
                 })
                 this.book.getMetadata().then(meta => {
                     this.meta = meta
+                    // this.meta.cover = this.book.cover
                     console.log('getMetadata')
                     console.log(meta)
                     this.title = meta.bookTitle + ' – ' + meta.creator
@@ -423,6 +450,11 @@
                 this.book.ready.all.then(() => {
                     console.log('finish')
                     console.log(this.book)
+                    this.getCoverURL(data => {
+                        console.log('什么')
+                        console.log(data)
+                        this.cover = data
+                    })
                     this.loading = false
                 })
                 this.book.renderer.forceSingle(true)
@@ -521,6 +553,12 @@
         width: 320px;
         max-width: 100%;
         .info-body {
+            position: absolute;
+            top: 64px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
             padding: 16px;
             .key {
                 width: 100px;
