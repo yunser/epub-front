@@ -1,16 +1,12 @@
 <template>
     <my-page :title="title" :page="page">
-        <!--<ui-raised-button class="file-btn" label="从文件中导入">-->
-        <!--<input type="file" class="ui-file-button" @change="fileChange($event, 1)">-->
-        <!--</ui-raised-button>-->
-        <button @click="addBookmark">添加书签</button>
         <div id="wrapper">
             <div id="area"></div>
         </div>
         <div id="prev" class="arrow" @click="prev" v-if="book">‹</div>
         <div id="next" class="arrow" @click="next" v-if="book">›</div>
         <ui-circular-progress class="loading" :size="40" v-if="loading"/>
-        <ui-drawer right :open="open" :docked="false" @close="toggle()">
+        <ui-drawer class="toc-drawer" right :open="open" :docked="false" @close="toggle()">
             <ui-appbar title="目录">
                 <ui-icon-button icon="close" @click="toggle" slot="left" />
             </ui-appbar>
@@ -92,16 +88,19 @@
         </ui-drawer>
         <ui-drawer class="bookmark-drawer" right :open="bookmarkVisible" :docked="false" @close="toggleBookmark()">
             <ui-appbar title="书签">
-                <ui-icon-button icon="close" @click="toggleBookmark" slot="left" />
+                <ui-icon-button icon="close" @click="toggleBookmark" title="关闭" slot="left" />
+                <ui-icon-button icon="add" @click="addBookmark" title="添加书签" slot="right" />
             </ui-appbar>
             <ui-list>
                 <ui-list-item :title="bookmark.name"
                               :key="bookmark.id"
                               @click="gotoBookmark(bookmark)"
-                              v-for="bookmark in bookmarks"/>
+                              v-for="bookmark in bookmarks">
+                    <ui-icon-button icon="close" title="删除" @click.stop="removeBookmark(bookmark)" slot="right" />
+                </ui-list-item>
             </ui-list>
             <div class="bookmark-body">
-                <div v-if="!bookmarks.length">暂无书签</div>
+                <div v-if="!bookmarks.length">暂无书签，点击 “+” 添加书签</div>
             </div>
         </ui-drawer>
         <div v-if="info">
@@ -194,7 +193,6 @@
                     spreads: false,
                     restore: true
                 })
-                this.book.setStyle('font-size', '1.2em')
                 this.book.getMetadata().then(meta => {
                     this.meta = meta
                     console.log('getMetadata')
@@ -280,13 +278,24 @@
             },
             gotoBookmark(bookmark) {
                 this.book.goto(bookmark.cfi)
+                this.bookmarkVisible = false
 //                Book.displayChapter('/6/4[chap01ref]!/4[body01]/10');
             },
+            removeBookmark(bookmark) {
+                for (let i = 0; i < this.bookmarks.length; i++) {
+                    if (this.bookmarks[i].id === bookmark.id) {
+                        this.bookmarks.splice(i, 1)
+                        this.$storage.set('bookmarks-' + this.bookId, this.bookmarks)
+                    }
+                }
+            },
             addBookmark() {
+                let name = '书签 ' + new Date().getHours() + ':' + new Date().getMinutes()
                 this.bookmarks.unshift({
                     id: '' + new Date().getTime(), // TODO
                     cfi: this.locationCfi,
-                    name: '未命名书签', // TODO
+                    name: name, // TODO
+                    createTime: new Date().getTime(),
                     posY: 1 // TODO
                 })
                 this.$storage.set('bookmarks-' + this.bookId, this.bookmarks)
@@ -356,26 +365,14 @@
             setStyle() {
                 let options = this.$storage.get('options', {
                     bgColor: '#fff',
-                    fontSize: 1.2
+                    fontSize: 1.2,
+                    fontFamily: '宋体'
                 })
 
                 this.book.setStyle('font-size', options.fontSize + 'em')
                 this.book.setStyle('background-color', options.bgColor)
+                this.book.setStyle('font-family', options.fontFamily)
                 this.book.renderer.forceSingle(false)
-            },
-            fileChange(e) {
-                let file = e.target.files[0]
-//                if (left === 1) {
-//                    var f_name = file.name;
-//                    var f_type = f_name.substring(f_name.lastIndexOf("."))
-//                }
-                console.log(file.name)
-                let reader = new FileReader()
-                reader.onload = e => {
-                    let content = e.target.result
-                    this.loadBook(content)
-                }
-                reader.readAsArrayBuffer(file)
             }
         }
     }
@@ -444,6 +441,17 @@
             .key {
                 width: 100px;
             }
+        }
+    }
+</style>
+
+<style lang="scss">
+    .toc-drawer {
+        width: 400px;
+        max-width: 100%;
+        .mu-item-title {
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
     }
 </style>
