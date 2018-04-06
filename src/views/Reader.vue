@@ -2,7 +2,7 @@
     <my-page :title="title" :page="page" :style="pageStyle">
         <div id="wrapper">
             <div id="area"></div>
-            <div class="divider"></div>
+            <div class="page-divider"></div>
         </div>
         <div id="prev" class="arrow" @click="prev" v-if="book">‹</div>
         <div id="next" class="arrow" @click="next" v-if="book">›</div>
@@ -136,7 +136,7 @@
                     <ui-menu-item value="bold" title="1400"/>
                 </ui-select-field> -->
                 <div>
-                    <ui-raised-button label="清除浏览器缓存" @click="clearStorage" />
+                    <ui-raised-button class="btn-clear" label="清除浏览器缓存" @click="clearStorage" />
                 </div>
             </div>
         </ui-drawer>
@@ -155,6 +155,62 @@
             </ui-list>
             <div class="bookmark-body">
                 <div v-if="!bookmarks.length">暂无书签，点击 “+” 添加书签</div>
+            </div>
+        </ui-drawer>
+        <ui-drawer class="note-drawer" :open="noteVisible" :docked="false" @close="toggleNote()">
+            <ui-appbar title="标注与笔记">
+                <ui-icon-button icon="close" @click="toggleNote" title="关闭" slot="left" />
+                <ui-icon-button icon="import_export" @click="exportNote" title="导出笔记" slot="right" v-if="notes.length" />
+            </ui-appbar>
+            <div class="total" v-if="notes.length">总数：{{ notes.length }}</div>
+            <ul class="note-list" v-if="notes.length">
+                <li class="item"
+                    :title="note.name"
+                    :key="note.id"
+                    @click="editNote(note)"
+                    v-for="note in notes">
+                    <div class="time">{{ note.createTime | simpleTime }}</div>
+                    <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
+                    <div class="note">{{ note.note || '暂无笔记' }}</div>
+                    <ui-icon-button class="close" icon="close" title="删除" @click.stop="removeNote(note)" />
+                    <ui-icon-button class="goto" icon="arrow_forward" title="跳转" @click.stop="gotoNote(note)" />
+                </li>
+            </ul>
+            <div class="note-body">
+                <div v-if="!notes.length">暂无标注和笔记</div>
+            </div>
+        </ui-drawer>
+        <ui-drawer class="edit-drawer" :open="editVisible" :docked="true" @close="toggleNote()">
+            <ui-appbar title="编辑笔记">
+                <ui-icon-button icon="close" @click="editVisible = false" title="关闭" slot="left" />
+                <!-- <ui-icon-button icon="check" @click="editVisible = false" title="保存" slot="right" /> -->
+            </ui-appbar>
+            <div class="edit-body" v-if="note">
+                <div class="time">{{ note.createTime | simpleTime }}</div>
+                <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
+                <textarea class="input" v-model="note.note"></textarea>
+                <!-- <div class="note">{{ note.note || '暂无笔记' }}</div> -->
+            </div>
+        </ui-drawer>
+        <ui-drawer class="export-drawer" :open="exportVisible" :docked="false" @close="toggleNote()">
+            <ui-appbar title="导出笔记">
+                <ui-icon-button icon="close" @click="exportVisible = false" title="关闭" slot="left" />
+            </ui-appbar>
+            <div class="tip">提示：你可以复制下面内容，然后粘贴到笔记软件中即可</div>
+            <div class="total" v-if="notes.length">总数：{{ notes.length }}</div>
+            <ul class="note-list2" v-if="notes.length">
+                <li class="item"
+                    :title="note.name"
+                    :key="note.id"
+                    @click="gotoBookmark(note)"
+                    v-for="note in notes">
+                    <div class="time">{{ note.createTime | simpleTime }}</div>
+                    <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
+                    <div class="note">{{ note.note || '暂无笔记' }}</div>
+                </li>
+            </ul>
+            <div class="note-body">
+                <div v-if="!notes.length">暂无标注和笔记</div>
             </div>
         </ui-drawer>
         <ui-drawer class="search-drawer" right :open="searchVisible" :docked="false" @close="toggleSearch()">
@@ -188,16 +244,10 @@
                     @click="highlightText(index)"
                     v-for="highlight, index in highlights"></li>
             </ul>
-            <div class="ann-color-bar" title="add highlight">
-                <span class="ann-color hl-red bg-red"></span>
-                <span class="ann-color hl-orange bg-yellow"></span>
-                <span class="ann-color hl-green bg-green"></span>
-                <span class="ann-color hl-blue bg-blue"></span>
-                <span class="ann-color hl-yellow bg-orange"></span>
-            </div>
             <div class="divider"></div>
-            <div class="menu-item" title="delete highlight/underline" @click="removeHighlight">Delete</div>
-            <div class="menu-item" title="copy text" @click="copy">Copy</div>
+            <!-- <div class="menu-item" title="delete highlight/underline" @click="removeHighlight">Delete</div> -->
+            <div class="menu-item" title="复制到剪切板" @click="copy">复制</div>
+            <div class="menu-item" title="使用百度搜索" @click="searchNetwork">搜索</div>
         </div>
     </my-page>
 </template>
@@ -222,12 +272,14 @@
                     totalPage: 10
                 },
                 book: null,
-                open: false,
                 toc: [],
                 meta: null,
                 cover: null,
-                infoVisible: false,
                 loading: true,
+                // infomation
+                open: false,
+                infoVisible: false,
+                // bookmark
                 bookmarkVisible: false,
                 bookmarks: [
                     {
@@ -243,6 +295,17 @@
                         posY: 1
                     }
                 ],
+                // search
+                searchVisible: false,
+                keyword: '',
+                results: null,
+                // note
+                noteVisible: false,
+                editVisible: false,
+                note: null,
+                notes: [],
+                exportVisible: false,
+                // setting
                 settingVisible: false,
                 options: {
                     bgColor: '#fff',
@@ -251,10 +314,6 @@
                     lineHeight: 2,
                     theme: 0
                 },
-                // search
-                searchVisible: false,
-                keyword: '',
-                results: null,
                 themes: [
                     {
                         id: '1',
@@ -311,15 +370,27 @@
                     menu: [
                         {
                             type: 'icon',
-                            icon: 'search',
-                            click: this.toggleSearch,
-                            title: '搜索'
+                            icon: 'book',
+                            click: this.toggleNote,
+                            title: '标注与笔记'
                         },
                         {
                             type: 'icon',
                             icon: 'list',
                             click: this.toggle,
                             title: '目录'
+                        },
+                        {
+                            type: 'icon',
+                            icon: 'search',
+                            click: this.toggleSearch,
+                            title: '搜索'
+                        },
+                        {
+                            type: 'icon',
+                            icon: 'bookmarks',
+                            click: this.toggleBookmark,
+                            title: '书签'
                         },
                         {
                             type: 'icon',
@@ -332,12 +403,6 @@
                             icon: 'info',
                             click: this.toggleInfo,
                             title: '书籍信息'
-                        },
-                        {
-                            type: 'icon',
-                            icon: 'bookmarks',
-                            click: this.toggleBookmark,
-                            title: '书签'
                         },
                         {
                             type: 'icon',
@@ -381,9 +446,35 @@
                     return ''
                 }
                 return format(new Date(value), 'yyyy-MM-dd')
+            },
+            simpleTime(value) {
+                let date = new Date(value)
+                let now = new Date()
+                let time = now.getTime() - date.getTime()
+                if (time < 60 * 60 * 1000) {
+                    return parseInt(time / (60 * 1000)) + ' 分钟前'
+                } else if (time < 24 * 60 * 1000) {
+                    return parseInt(time / (24 * 60 * 1000)) + ' 小时前'
+                }
+                return format(new Date(value), 'yyyy-MM-dd')
             }
         },
         methods: {
+            editNote(note) {
+                this.note = note
+                this.editVisible = true
+            },
+            removeNote(note) {
+                let store = this.$storage.get('highlight', {})
+                this.notes = store[this.bookId] || []
+                for (let i = 0; i < this.notes.length; i++) {
+                    if (this.notes[i].id === note.id) {
+                        this.notes.splice(i, 1)
+                        break
+                    }
+                }
+                this.$storage.set('highlight', store)
+            },
             copy() {
                 let iframe = document.getElementsByTagName('iframe')[0]
                 let result = iframe.contentWindow.document.execCommand('copy', false, null)
@@ -394,13 +485,19 @@
             },
             removeHighlight() {
                 QiuPen.highlighter.unhighlightSelection()
-                QiuPen.save(this.book, this.bookId, this.selectedText)
+                // QiuPen.save(this.book, this.bookId, this.selectedText, this.locationCfi)
+                document.getElementById('select-menu').style.visibility = 'hidden'
+            },
+            searchNetwork() {
+                window.open('https://www.baidu.com/s?wd=' + this.selectedText)
                 document.getElementById('select-menu').style.visibility = 'hidden'
             },
             highlightText(index) {
                 let name = 'hl-' + this.highlights[index].name
                 QiuPen.highlighter.highlightSelection(name)
-                QiuPen.save(this.book, this.bookId)
+                QiuPen.save(this.book, this.bookId, this.selectedText, this.locationCfi, this.highlights[index].color)
+                this.loadNote()
+                document.getElementById('select-menu').style.visibility = 'hidden'
             },
             fullscreen() {
                 // 进入全屏模式
@@ -502,6 +599,12 @@
                 })
                 // get bookmarks
                 this.bookmarks = this.$storage.get('bookmarks-' + this.bookId, [])
+                this.loadNote()
+            },
+            loadNote() {
+                // get notes
+                let store = this.$storage.get('highlight', {})
+                this.notes = store[this.bookId] || []
             },
             initAfterLoadedBook() {
                 QiuPen.init()
@@ -548,6 +651,13 @@
             toggleBookmark() {
                 this.bookmarkVisible = !this.bookmarkVisible
             },
+            toggleNote() {
+                this.noteVisible = !this.noteVisible
+                this.editVisible = false
+            },
+            exportNote() {
+                this.exportVisible = true
+            },
             toggleSearch() {
                 this.searchVisible = !this.searchVisible
             },
@@ -561,6 +671,9 @@
             },
             gotoCfi(cfi) {
                 this.book.goto(cfi)
+            },
+            gotoNote(note) {
+                this.book.goto(note.cfi)
             },
             removeBookmark(bookmark) {
                 for (let i = 0; i < this.bookmarks.length; i++) {
@@ -620,7 +733,6 @@
                         var script = document.createElement('script')
                         script.type = 'text/javascript'
                         script.src = url
-
                         return script
                     }
 
@@ -630,7 +742,6 @@
                         link.rel = 'stylesheet'
                         link.type = 'text/css'
                         link.href = url
-
                         return link
                     }
 
@@ -656,7 +767,7 @@
                     this.selection = selectedContent
                     console.log(this.selection)
                     console.log(this.selection.anchorNode.data.substring(this.selection.baseOffset, this.selection.extentOffset))
-                    this.selectedText = this.selection.anchorNode.data
+                    this.selectedText = this.selection.anchorNode.data.substring(this.selection.baseOffset, this.selection.extentOffset)
                     // 若当前用户不在选中状态，并且选中文字不为空
                     if (this.selected === false) {
                         console.log('啦啦2')
@@ -668,7 +779,7 @@
                 })
                 this.book.renderTo('area').then(() => {
                     this.setStyle()
-                    this.book.goto('epubcfi(/6/6[id71]!/4[0-622b49af2d5d40458b0c96129dcf4ccb]/2/2[calibre_pb_0]/1:0)')
+                    // this.book.goto('epubcfi(/6/6[id71]!/4[0-622b49af2d5d40458b0c96129dcf4ccb]/2/2[calibre_pb_0]/1:0)')
                 })
             },
             setStyle() {
@@ -700,6 +811,15 @@
                 handler() {
                     this.$storage.set('options', this.options)
                     this.setStyle()
+                }
+            },
+            note: {
+                deep: true,
+                handler() {
+                    console.log('123')
+                    let store = this.$storage.get('highlight', {})
+                    store[this.bookId] = this.notes
+                    this.$storage.set('highlight', store)
                 }
             }
         }
@@ -754,7 +874,7 @@
     // box-shadow: inset 10px 0 20px rgba(0, 0, 0, .1);
     // padding: 40px 40px;
 }
-.divider {
+.page-divider {
     display: none;
     position: absolute;
     width: 1px;
@@ -816,6 +936,11 @@
             width: 100px;
         }
     }
+    .btn-clear {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+    }
 }
 .bookmark-drawer {
     width: 320px;
@@ -825,6 +950,167 @@
         .key {
             width: 100px;
         }
+    }
+}
+.note-drawer {
+    width: 320px;
+    max-width: 100%;
+    .note-body {
+        padding: 16px;
+        .key {
+            width: 100px;
+        }
+    }
+    .total {
+        margin: 16px;
+    }
+}
+.edit-drawer {
+    left: 320px;
+    z-index: 100000000;
+    width: 320px;
+    max-width: 100%;
+    .edit-body {
+        padding: 16px;
+        .time {
+            margin-bottom: 16px;
+        }
+        .mark {
+            padding: 8px 16px;
+            margin-bottom: 16px;
+            border-left: 8px solid #09c;
+            max-height: 54px;
+            overflow: hidden;
+        }
+        .note {
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .input {
+            width: 100%;
+            height: 240px;
+            padding: 16px;
+            outline: none;
+        }
+    }
+}
+.export-drawer {
+    width: 100%;
+    max-width: 100%;
+    .note-body {
+        padding: 16px;
+        .key {
+            width: 100px;
+        }
+    }
+    .total {
+        margin: 16px;
+    }
+    .tip {
+        display: inline-block;
+        margin: 16px;
+        height: 40px;
+        background: #feffe1;
+        padding: 10px 14px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #666;
+    }
+}
+.note-list {
+    position: absolute;
+    top: 120px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-top: 1px solid #eee;
+    overflow: auto;
+    .item {
+        position: relative;
+        padding: 48px 16px 16px 16px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        &:hover {
+            background-color: #f1f1f1;
+            .close {
+                display: block;
+            }
+            .goto {
+                display: block;
+            }
+        }
+    }
+    .close {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        // background-color: #fff;
+    }
+    .goto {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 48px;
+        // background-color: #fff;
+    }
+    .mark {
+        padding: 8px 16px;
+        margin-bottom: 16px;
+        border-left: 8px solid #09c;
+        max-height: 54px;
+        overflow: hidden;
+    }
+    .note {
+        color: #999;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .time {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        color: #999;
+    }
+}
+.note-list2 {
+    border-top: 1px solid #eee;
+    overflow: auto;
+    .item {
+        position: relative;
+        padding: 48px 16px 16px 16px;
+        border-bottom: 1px solid #eee;
+    }
+    .close {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        // background-color: #fff;
+    }
+    .goto {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 48px;
+        // background-color: #fff;
+    }
+    .mark {
+        padding: 8px 16px;
+        margin-bottom: 16px;
+        border-left: 8px solid #09c;
+    }
+    .note {
+        color: #999;
+    }
+    .time {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        color: #999;
     }
 }
 .search-drawer {

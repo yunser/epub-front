@@ -1,6 +1,9 @@
 body {
-    // overflow: hidden;
+    overflow: hidden;
     // background: #eee;
+}
+.ui-page-common .ui-page-body {
+    overflow: hidden;
 }
 .ui-file-button{
     position: absolute;
@@ -15,7 +18,7 @@ body {
 .select-menu {
     position: absolute;
     visibility: hidden;
-    width: 200px;
+    width: 240px;
     padding: 10px 0;
     background-color: #fff;
     box-shadow: 0 3px 12px rgba(0, 0, 0, .14);

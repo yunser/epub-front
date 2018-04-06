@@ -34,8 +34,8 @@ QiuPen.create = function (document) {
     })
 }
 
-QiuPen.save = function (book, bookKey, selectedText) {
-    console.log('bookKey', bookKey)
+QiuPen.save = function (book, bookKey, selectedText, cfi, color) {
+    console.log('selectedText', selectedText)
     var store = storage.get('highlight', {})
 
     store[bookKey] = store[bookKey] || []
@@ -44,9 +44,17 @@ QiuPen.save = function (book, bookKey, selectedText) {
     console.log(chapterPos)
     var serStr = QiuPen.highlighter.serialize()
     console.log(serStr)
-    var hlObj = new Highlight(chapterPos, serStr)
+    
+    var hlObj = new Highlight(chapterPos, serStr, selectedText)
+    hlObj.id = '' + new Date().getTime()
+    hlObj.createTime = new Date().getTime()
+    hlObj.cfi = cfi
+    hlObj.color = color
+    hlObj.note = ''
+    hlObj.selectedText = selectedText
+
     console.log(hlObj)
-    store[bookKey].push(hlObj)
+    store[bookKey].unshift(hlObj)
     
     storage.set('highlight', store)
 }
