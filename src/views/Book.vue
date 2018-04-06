@@ -25,10 +25,11 @@
 </template>
 
 <script>
-    /* eslint-disable */
+    /* eslint-disable2 */
     import bookDb from '../util/bookDb2'
     import reader from '../util/reader'
     import {getCoverURL} from '../util/bookUtil'
+    const ePub = window.ePub
 
     export default {
         data () {
@@ -80,33 +81,26 @@
                 this.reader = reader
                 console.log('初始化')
                 bookDb.init(() => {
-//                    bookDb.init2()
                     bookDb.getBooks(data => {
                         console.log('获取所有书籍')
                         console.log(data)
                         this.books = data
+                        // 添加示例图书
+                        let isInit = this.$storage.get('init', false)
+                        if (!isInit) {
+                            this.$storage.set('init', true)
+                            this.addBookFromUrl('http://img1.yunser.com/epub/test.epub')
+                        }
                     })
                 })
-//                console.log('添加书籍')
-//                await bookDb.addBook({
-//                    id: '1',
-//                    name: 'namename',
-//                    author: '陈建行',
-//                    content: '1'
-//                })
-//                console.log('获取所有书籍')
-//                let books = await bookDb.getBooks()
-//                console.log(books)
-//                console.log('获取书籍')
-//                let book = await bookDb.getBook('1')
-//                console.log(book)
-//                console.log('删除书籍')
-//                await bookDb.deleteBook('1')
             },
             addLink() {
                 let link = prompt('请输入链接')
                 console.log(link)
-                this.book = ePub(link, {
+                this.addBookFromUrl(link)
+            },
+            addBookFromUrl(url) {
+                this.book = ePub(url, {
                     width: 400,
                     height: 600,
                     spreads: false,
@@ -121,14 +115,13 @@
                             id: '' + new Date().getTime(),
                             name: meta.bookTitle,
                             author: meta.creator,
-                            content: link
+                            content: url
                         }, () => {
                             bookDb.getBooks(data => {
                                 console.log('获取所有书籍')
                                 this.books = data
                                 console.log(data)
                             })
-
                         })
                     })
                 })
@@ -148,13 +141,13 @@
                 let fileName = 'dl.epub'
                 let blob = book.content
                 if (window.navigator.msSaveOrOpenBlob) {
-                    navigator.msSaveBlob(blob, fileName);
+                    navigator.msSaveBlob(blob, fileName)
                 } else {
-                    var link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = fileName;
-                    link.click();
-                    window.URL.revokeObjectURL(link.href);
+                    var link = document.createElement('a')
+                    link.href = window.URL.createObjectURL(blob)
+                    link.download = fileName
+                    link.click()
+                    window.URL.revokeObjectURL(link.href)
                 }
             },
             fileChange(e) {
@@ -164,7 +157,7 @@
                 }
                 let file = e.target.files[0]
 //                if (left === 1) {
-//                    var f_name = file.name;
+//                    var f_name = file.name
 //                    var f_type = f_name.substring(f_name.lastIndexOf("."))
 //                }
                 console.log(file.name)
@@ -195,7 +188,6 @@
                                         this.books = data
                                         console.log(data)
                                     })
-
                                 })
                             })
                         })

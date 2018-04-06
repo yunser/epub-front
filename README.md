@@ -1,6 +1,6 @@
-# template-front
+# epub-front
 
-> A Vue.js project
+> 一个在线版的 epub 电子书阅读器。
 
 ## Build Setup
 

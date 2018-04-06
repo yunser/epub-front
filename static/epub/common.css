@@ -11,7 +11,9 @@
 /* annotation highlight */
 
 [class*=hl-] {
+    padding: 0 4px;
     color: #FFF;
+    cursor: pointer;
 }
 
 .hl-red {

@@ -214,18 +214,17 @@
             </div>
         </ui-drawer>
         <ui-drawer class="search-drawer" right :open="searchVisible" :docked="false" @close="toggleSearch()">
-            <ui-appbar title="搜索">
+            <ui-appbar title="全文搜索">
                 <ui-icon-button icon="close" @click="toggleSearch" title="关闭" slot="left" />
             </ui-appbar>
             <div class="search-body">
                 <ui-text-field  v-model="keyword" />
-                <ui-raised-button label="全文搜索" @click="search" />
+                <ui-icon-button icon="search" title="全文搜索" @click="search" />
                 <div v-if="results">
                     <div v-if="!results.length">搜索不到结果</div>
                     <ul class="result-list">
                         <li class="item" v-for="result in results">
-                            <a class="link" href="#" @click.prevent="gotoCfi(result.cfi)">
-                                {{ result.excerpt }}
+                            <a class="link" href="#" @click.prevent="gotoCfi(result.cfi)" v-html="searhReslt(result.excerpt)">
                             </a>
                         </li>
                     </ul>
@@ -245,7 +244,7 @@
                     v-for="highlight, index in highlights"></li>
             </ul>
             <div class="divider"></div>
-            <!-- <div class="menu-item" title="delete highlight/underline" @click="removeHighlight">Delete</div> -->
+            <div class="menu-item" title="" @click="removeHighlight">删除标记</div>
             <div class="menu-item" title="复制到剪切板" @click="copy">复制</div>
             <div class="menu-item" title="使用百度搜索" @click="searchNetwork">搜索</div>
         </div>
@@ -460,6 +459,9 @@
             }
         },
         methods: {
+            searhReslt(text) {
+                return text.replace(this.keyword, `<span class="keyword"> ${this.keyword} </span>`)
+            },
             editNote(note) {
                 this.note = note
                 this.editVisible = true
@@ -1033,7 +1035,7 @@
         border-bottom: 1px solid #eee;
         cursor: pointer;
         &:hover {
-            background-color: #f1f1f1;
+            background-color: #f9f9f9;
             .close {
                 display: block;
             }
@@ -1113,28 +1115,7 @@
         color: #999;
     }
 }
-.search-drawer {
-    width: 400px;
-    max-width: 100%;
-    .search-body {
-        padding: 16px;
-        .key {
-            width: 100px;
-        }
-    }
-    .result-list {
-        position: absolute;
-        top: 128px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        overflow: auto;
-        .item {
-            padding: 0 16px;
-            margin-bottom: 8px;
-        }
-    }
-}
+
 .theme-list {
     overflow: hidden;
     .item {
@@ -1178,4 +1159,37 @@
             text-overflow: ellipsis;
         }
     }
+    .search-drawer {
+    width: 400px;
+    max-width: 100%;
+    .search-body {
+        padding: 16px;
+        .key {
+            width: 100px;
+        }
+    }
+    .result-list {
+        position: absolute;
+        top: 128px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-top: 1px solid #eee;
+        overflow: auto;
+        .item {
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            &:hover {
+                background-color: #f9f9f9;
+            }
+        }
+        .link {
+            color: #666;
+        }
+        .keyword {
+            color: #009688;
+            font-weight: bold;
+        }
+    }
+}
 </style>
