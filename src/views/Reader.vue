@@ -188,29 +188,32 @@
             <div class="edit-body" v-if="note">
                 <div class="time">{{ note.createTime | simpleTime }}</div>
                 <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
-                <textarea class="input" v-model="note.note"></textarea>
+                <textarea class="input" v-model="note.note" placeholder="输入笔记"></textarea>
                 <!-- <div class="note">{{ note.note || '暂无笔记' }}</div> -->
             </div>
         </ui-drawer>
         <ui-drawer class="export-drawer" :open="exportVisible" :docked="false" @close="toggleNote()">
             <ui-appbar title="导出笔记">
                 <ui-icon-button icon="close" @click="exportVisible = false" title="关闭" slot="left" />
+                <ui-icon-button icon="file_download" @click="exportMarkdown" title="导出 Markdown" slot="right" />
             </ui-appbar>
-            <div class="tip">提示：你可以复制下面内容，然后粘贴到笔记软件中即可</div>
-            <div class="total" v-if="notes.length">总数：{{ notes.length }}</div>
-            <ul class="note-list2" v-if="notes.length">
-                <li class="item"
-                    :title="note.name"
-                    :key="note.id"
-                    @click="gotoBookmark(note)"
-                    v-for="note in notes">
-                    <div class="time">{{ note.createTime | simpleTime }}</div>
-                    <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
-                    <div class="note">{{ note.note || '暂无笔记' }}</div>
-                </li>
-            </ul>
-            <div class="note-body">
-                <div v-if="!notes.length">暂无标注和笔记</div>
+            <div class="export-body">
+                <div class="tip">提示：你可以复制下面内容，然后粘贴到笔记软件中即可</div>
+                <div class="total" v-if="notes.length">总数：{{ notes.length }}</div>
+                <ul class="note-list2" v-if="notes.length">
+                    <li class="item"
+                        :title="note.name"
+                        :key="note.id"
+                        @click="gotoBookmark(note)"
+                        v-for="note in notes">
+                        <div class="time">{{ note.createTime | simpleTime }}</div>
+                        <div class="mark" :style="{'border-color': note.color}">{{ note.selectedText }}</div>
+                        <div class="note">{{ note.note || '暂无笔记' }}</div>
+                    </li>
+                </ul>
+                <div class="note-body">
+                    <div v-if="!notes.length">暂无标注和笔记</div>
+                </div>
             </div>
         </ui-drawer>
         <ui-drawer class="search-drawer" right :open="searchVisible" :docked="false" @close="toggleSearch()">
@@ -257,6 +260,7 @@
     import {getCoverURL} from '../util/bookUtil'
     import {format} from '../util/time'
     import reader from '../util/reader'
+    import exportMarkdown from '../util/exportMarkdown'
     const ePub = window.ePub
     const EPUBJS = window.EPUBJS
     const QiuPen = window.QiuPen
@@ -459,6 +463,9 @@
             }
         },
         methods: {
+            exportMarkdown() {
+                exportMarkdown(this.notes, this.meta)
+            },
             searhReslt(text) {
                 return text.replace(this.keyword, `<span class="keyword"> ${this.keyword} </span>`)
             },
@@ -1006,6 +1013,15 @@
         .key {
             width: 100px;
         }
+    }
+    // TODO
+    .export-body {
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: auto;
     }
     .total {
         margin: 16px;
