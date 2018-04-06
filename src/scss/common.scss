@@ -2,8 +2,11 @@ body {
     overflow: hidden;
     // background: #eee;
 }
-.ui-page-common .ui-page-body {
+.page-reader .ui-page-body {
     overflow: hidden;
+}
+.ui-page-common .ui-page-body {
+    // overflow: hidden;
 }
 .ui-file-button{
     position: absolute;

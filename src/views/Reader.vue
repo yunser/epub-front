@@ -1,5 +1,5 @@
 <template>
-    <my-page :title="title" :page="page" :style="pageStyle">
+    <my-page class="page-reader" :title="title" :page="page" :style="pageStyle">
         <div id="wrapper">
             <div id="area"></div>
             <div class="page-divider"></div>

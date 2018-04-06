@@ -1,5 +1,5 @@
 <template>
-    <my-page :title="title" :page="page">
+    <my-page class="page-home" :title="title" :page="page">
         <div id="main">
             <ul class="book-list">
                 <li class="item" v-for="book in books">
