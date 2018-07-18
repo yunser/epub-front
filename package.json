@@ -11,14 +11,6 @@
     "build": "node build/build.js"
   },
   "dependencies": {
-    "axios": "^0.17.1",
-    "module": "^1.2.5",
-    "muse-ui": "^2.1.0",
-    "qs": "^6.5.1",
-    "vue": "^2.5.2",
-    "vue-router": "^3.0.1",
-    "vue-server-renderer": "^2.5.9",
-    "yunser-ui-vue": "0.1.25"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
