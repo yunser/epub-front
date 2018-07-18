@@ -89,7 +89,7 @@
                         let isInit = this.$storage.get('init', false)
                         if (!isInit) {
                             this.$storage.set('init', true)
-                            this.addBookFromUrl('http://img1.yunser.com/epub/test.epub')
+                            this.addBookFromUrl('https://img1.yunser.com/epub/test.epub')
                         }
                     })
                 })
