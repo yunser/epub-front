@@ -63,6 +63,13 @@
                             icon: 'cloud_download',
                             click: this.addLink,
                             title: '添加云端书籍'
+                        },
+                        {
+                            type: 'icon',
+                            icon: 'apps',
+                            href: 'https://app.yunser.com?utm_source=epub',
+                            target: '_blank',
+                            title: '应用'
                         }
                     ]
                 }
